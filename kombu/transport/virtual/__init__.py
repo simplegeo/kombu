@@ -22,7 +22,8 @@ from kombu.utils.compat import OrderedDict
 from kombu.utils.finalize import Finalize
 
 from kombu.transport.virtual.scheduling import FairCycle
-from kombu.transport.virtual.exchange import STANDARD_EXCHANGE_TYPES
+from kombu.transport.virtual.exchange import FanoutExchange, \
+                                             STANDARD_EXCHANGE_TYPES
 
 
 class NotEquivalentError(Exception):
@@ -311,8 +312,12 @@ class Channel(AbstractChannel):
         message["properties"]["delivery_info"]["exchange"] = exchange
         message["properties"]["delivery_info"]["routing_key"] = routing_key
         message["properties"]["delivery_tag"] = self._next_delivery_tag()
-        for queue in self._lookup(exchange, routing_key):
-            self._put(queue, message, **kwargs)
+        if isinstance(self.typeof(exchange), FanoutExchange) and \
+                self.supports_fanout:
+            self._put_fanout(exchange, message, **kwargs)
+        else:
+            for queue in self._lookup(exchange, routing_key):
+                self._put(queue, message, **kwargs)
 
     def basic_consume(self, queue, no_ack, callback, consumer_tag, **kwargs):
         """Consume from `queue`"""

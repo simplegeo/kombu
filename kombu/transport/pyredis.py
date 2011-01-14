@@ -14,6 +14,7 @@ from Queue import Empty, Queue as _Queue
 from anyjson import serialize, deserialize
 
 from kombu.transport import virtual
+from kombu.transport.virtual.exchange import FanoutExchange
 from kombu.utils.finalize import Finalize
 
 DEFAULT_PORT = 6379
@@ -124,6 +125,7 @@ class Channel(virtual.Channel):
     def __init__(self, *args, **kwargs):
         super_ = super(Channel, self)
         super_.__init__(*args, **kwargs)
+        self._fanout_exchanges = {}
 
         self._poller = ChannelPoller(super_.drain_events)
         self.Client = self._get_client()
@@ -141,10 +143,14 @@ class Channel(virtual.Channel):
         return self._poller.poll()
 
     def _queue_bind(self, exchange, routing_key, pattern, queue):
-        self.client.sadd(self.keyprefix_queue % (exchange, ),
-                         self.sep.join([routing_key or "",
-                                        pattern or "",
-                                        queue or ""]))
+        if isinstance(self.typeof(exchange), FanoutExchange):
+            self.client.subscribe(exchange)
+            self._fanout_exchanges[exchange] = queue
+        else:
+            self.client.sadd(self.keyprefix_queue % (exchange, ),
+                             self.sep.join([routing_key or "",
+                                            pattern or "",
+                                            queue or ""]))
 
     def get_table(self, exchange):
         members = self.client.smembers(self.keyprefix_queue % (exchange, ))
@@ -160,6 +166,17 @@ class Channel(virtual.Channel):
         return self.client.llen(queue)
 
     def _get_many(self, queues, timeout=None):
+        if self._fanout_exchanges:
+            if not self.client.subscribed:
+                print("SUBSCRIBE: %r" % (self._fanout_exchanges.keys(), ))
+                self.client.subscribe(self._fanout_exchanges.keys())
+            m = self.client.receive(block=False)
+            if m and m["type"] == "message":
+                data = deserialize(m["data"])
+                print("DATA: %r" % (data, ))
+                return data, self._fanout_exchanges[m["channel"]]
+            raise Empty()
+        print("RECEIVE TASK")
         dest__item = self.client.brpop(queues, timeout=timeout)
         if dest__item:
             dest, item = dest__item
@@ -169,6 +186,11 @@ class Channel(virtual.Channel):
     def _put(self, queue, message, **kwargs):
         self.client.lpush(queue, serialize(message))
 
+    def _put_fanout(self, exchange, message, **kwargs):
+        print("PUT_FANOUT %r: %r" % (exchange, message))
+        n = self.client.publish(exchange, serialize(message))
+        print("RECEIVERS: %r" % (n, ))
+
     def _purge(self, queue):
         size = self.client.llen(queue)
         self.client.delete(queue)
@@ -177,10 +199,6 @@ class Channel(virtual.Channel):
     def close(self):
         self._poller.close()
         if self._client is not None:
-            try:
-                self._client.bgsave()
-            except self.ResponseError:
-                pass
             try:
                 self._client.connection.disconnect()
             except (AttributeError, self.ResponseError):
