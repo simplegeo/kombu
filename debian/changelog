@@ -1,3 +1,12 @@
+python-kombu (1.0.5-0sg8) lucid; urgency=low
+
+  [ Ian Eure ]
+  * Add amqplib dependency.
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 22 Mar 2011 01:32:02 +0000
+
 python-kombu (1.0.5-0sg7) lucid; urgency=low
 
   [ Ian Eure ]
