@@ -13,7 +13,9 @@ Homepage: http://github.com/ask/kombu
 
 Package: python-kombu
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends},
+ ${misc:Depends},
+ python-anyjson
 Description: AMQP messaging framework for Python
  AMQP is the Advanced Message Queuing Protocol, an open standard
  protocol for message orientation, queuing, routing, reliability and
