@@ -7,7 +7,7 @@ Build-Depends: cdbs,
  debhelper (>= 7),
  python,
  python-setuptools,
- python-support
+ python-support,
 Standards-Version: 3.8.4
 Homepage: http://github.com/ask/kombu
 
@@ -15,7 +15,8 @@ Package: python-kombu
 Architecture: all
 Depends: ${shlibs:Depends},
  ${misc:Depends},
- python-anyjson
+ python-anyjson,
+ python-amqplib (>= 0.6.0)
 Description: AMQP messaging framework for Python
  AMQP is the Advanced Message Queuing Protocol, an open standard
  protocol for message orientation, queuing, routing, reliability and
