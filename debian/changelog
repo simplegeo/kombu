@@ -1,3 +1,9 @@
+python-kombu (1.0.5-0sg6) lucid; urgency=low
+
+  * UNRELEASED
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 22 Mar 2011 00:17:33 +0000
+
 python-kombu (1.0.5-0sg0) unstable; urgency=low
 
   * SimpleGeoized.
